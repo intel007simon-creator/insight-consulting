@@ -21,14 +21,19 @@ export default async function Home() {
       {/* 1. Hero */}
       <section className="hero">
         <div className="container hero__inner">
-          <div className="hero__brand">Insight Consulting</div>
-          <h1>인싸이트컨설팅<small>미래기술 강의 · 컨설팅</small></h1>
-          <div className="hero__salon">{SITE.brandEn}</div>
-          <p className="hero__slogan">{SITE.slogan}</p>
-          <div className="hero__actions">
-            <Link href="/futuresalon" className="btn btn--primary">미래살롱 보기</Link>
-            <Link href="/contact" className="btn btn--ghost">강의 문의</Link>
-            <Link href="/profile" className="btn btn--ghost">양성길 대표 소개</Link>
+          <div className="hero__text">
+            <div className="hero__brand">Insight Consulting</div>
+            <h1>인싸이트컨설팅<small>미래기술 강의 · 컨설팅</small></h1>
+            <div className="hero__salon">{SITE.brandEn}</div>
+            <p className="hero__slogan">{SITE.slogan}</p>
+            <div className="hero__actions">
+              <Link href="/futuresalon" className="btn btn--primary">미래살롱 보기</Link>
+              <Link href="/contact" className="btn btn--ghost">강의 문의</Link>
+              <Link href="/profile" className="btn btn--ghost">양성길 대표 소개</Link>
+            </div>
+          </div>
+          <div className="hero__media">
+            <img src="/profile-round.png" alt="인싸이트컨설팅 대표 양성길 Simon Yang" className="hero__portrait" />
           </div>
         </div>
       </section>
