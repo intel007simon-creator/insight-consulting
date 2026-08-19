@@ -1,8 +1,12 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 공개 콘텐츠(회사소개, 미래살롱 글 등)는 누구나 읽기 가능
-    // 쓰기(추가/수정/삭제)는 막아둠 — 콘솔이나 관리자 인증으로만 처리
+    // 글(posts): 누구나 읽기 가능, 쓰기는 로그인한 관리자만 (관리자 페이지에서 사용)
+    match /posts/{docId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    // 그 외 전체: 읽기 허용, 쓰기 잠금
     match /{document=**} {
       allow read: if true;
       allow write: if false;
