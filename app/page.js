@@ -1,3 +1,4 @@
+export const revalidate = 60
 import Link from 'next/link'
 import { SITE } from '@/lib/site'
 import { CATEGORY_GROUPS } from '@/lib/categories'
