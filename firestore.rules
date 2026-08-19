@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 공개 콘텐츠(회사소개, 미래살롱 글 등)는 누구나 읽기 가능
+    // 쓰기(추가/수정/삭제)는 막아둠 — 콘솔이나 관리자 인증으로만 처리
+    match /{document=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
