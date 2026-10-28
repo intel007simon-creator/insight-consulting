@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getDb, getAuthClient } from '@/lib/firebase'
+import { getDb, getAuthClient, getStorageClient } from '@/lib/firebase'
 import { ALL_CATEGORIES } from '@/lib/categories'
 import { getAllTravelPostsForAdmin, TRAVEL_COLLECTION } from '@/lib/travel'
 
@@ -274,6 +274,7 @@ function TravelAdmin() {
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const [fetching, setFetching] = useState(false)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => { loadPosts() }, [])
 
@@ -282,6 +283,31 @@ function TravelAdmin() {
       const rows = await getAllTravelPostsForAdmin()
       setPosts(rows)
     } catch (e) { setMsg('목록 로드 오류: ' + e.message) }
+  }
+
+  async function uploadThumbnail(e) {
+    const file = e.target.files && e.target.files[0]
+    e.target.value = '' // 같은 파일을 다시 골라도 onChange가 매번 발생하도록 초기화
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setMsg('이미지 파일만 업로드할 수 있습니다.'); return }
+    if (file.size > 8 * 1024 * 1024) { setMsg('이미지 용량은 8MB 이하여야 합니다.'); return }
+
+    setUploading(true); setMsg('')
+    try {
+      const storage = getStorageClient()
+      if (!storage) throw new Error('Firebase Storage가 설정되어 있지 않습니다.')
+      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage')
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+      const path = `travel-thumbnails/${Date.now()}-${safeName}`
+      const fileRef = ref(storage, path)
+      await uploadBytes(fileRef, file, { contentType: file.type })
+      const url = await getDownloadURL(fileRef)
+      setForm((f) => ({ ...f, thumbnail: url }))
+      setMsg('✓ 썸네일 이미지를 업로드했습니다.')
+    } catch (e) {
+      setMsg('업로드 오류: ' + (e.message || String(e)))
+    }
+    setUploading(false)
   }
 
   const on = (e) => {
@@ -386,7 +412,17 @@ function TravelAdmin() {
 
           <div className="field"><label>제목 *</label><input name="title" value={form.title} onChange={on} required /></div>
           <div className="field"><label>요약</label><textarea name="summary" value={form.summary} onChange={on} style={{ minHeight: 80 }} /></div>
-          <div className="field"><label>썸네일 이미지 URL</label><input name="thumbnail" value={form.thumbnail} onChange={on} placeholder="자동으로 채워지거나 직접 입력" /></div>
+          <div className="field">
+            <label>썸네일 이미지 URL</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input name="thumbnail" value={form.thumbnail} onChange={on} placeholder="자동으로 채워지거나 직접 입력" style={{ flex: 1 }} />
+              <label className="btn btn--outline" style={{ ...btnSm, whiteSpace: 'nowrap', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+                {uploading ? '업로드 중…' : '파일로 추가'}
+                <input type="file" accept="image/*" onChange={uploadThumbnail} disabled={uploading} style={{ display: 'none' }} />
+              </label>
+            </div>
+            <p style={{ color: 'var(--muted)', fontSize: '.82rem', marginTop: 6 }}>블로그에서 자동으로 가져오거나, URL을 직접 입력하거나, 내 컴퓨터에 있는 이미지를 올릴 수 있습니다. (최대 8MB)</p>
+          </div>
 
           <div className="grid grid--2" style={{ gap: 12 }}>
             <div className="field"><label>작성일 (비우면 오늘)</label><input name="published_at" value={form.published_at} onChange={on} placeholder="2018-02-20" /></div>
