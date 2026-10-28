@@ -28,12 +28,30 @@ function extractMeta(html, keys) {
   return result
 }
 
+// blog.naver.com 의 글 페이지는 프레임셋(frameset) 구조라서 최상위 HTML에는
+// 실제 글의 og:title/og:image가 들어있지 않고, 블로그 전체에 대한 일반 정보만 담겨 있다.
+// m.blog.naver.com(모바일 버전)은 프레임 없이 글 내용을 그대로 서버에서 렌더링하므로
+// 해당 글의 실제 제목·썸네일이 og 태그에 정확히 들어있다. 그래서 데스크톱 주소가 오면
+// 모바일 주소로 바꿔서 가져온다 — 글 제목·썸네일을 "그대로" 가져오기 위한 핵심 처리.
+function normalizeNaverUrl(inputUrl) {
+  try {
+    const u = new URL(inputUrl)
+    if (/(^|\.)blog\.naver\.com$/i.test(u.hostname) && u.hostname !== 'm.blog.naver.com') {
+      u.hostname = 'm.blog.naver.com'
+    }
+    return u.toString()
+  } catch {
+    return inputUrl
+  }
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
-  const url = searchParams.get('url')
-  if (!url || !/^https?:\/\//i.test(url)) {
+  const rawUrl = searchParams.get('url')
+  if (!rawUrl || !/^https?:\/\//i.test(rawUrl)) {
     return Response.json({ error: '올바른 URL을 입력해 주세요.' }, { status: 400 })
   }
+  const url = normalizeNaverUrl(rawUrl)
   try {
     const res = await fetch(url, {
       redirect: 'follow',
@@ -55,7 +73,7 @@ export async function GET(request) {
     let thumbnail = decodeEntities(meta['og:image'] || meta['twitter:image'] || '') || ''
     if (thumbnail && thumbnail.startsWith('//')) thumbnail = 'https:' + thumbnail
 
-    return Response.json({ title, summary, thumbnail, sourceUrl: url })
+    return Response.json({ title, summary, thumbnail, sourceUrl: rawUrl })
   } catch (e) {
     return Response.json({ error: '링크를 읽는 중 오류가 발생했습니다: ' + e.message }, { status: 500 })
   }
