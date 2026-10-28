@@ -310,6 +310,23 @@ function TravelAdmin() {
     setUploading(false)
   }
 
+  async function removeThumbnail() {
+    const current = form.thumbnail
+    setForm((f) => ({ ...f, thumbnail: '' }))
+    // 우리가 직접 업로드한 파일(travel-thumbnails/ 경로)이면 Storage에서도 함께 지워
+    // 안 쓰는 이미지가 쌓이지 않도록 한다. 블로그에서 가져온 외부 이미지 URL이면 건드리지 않는다.
+    if (current && /travel-thumbnails%2F/.test(current)) {
+      try {
+        const storage = getStorageClient()
+        const { ref, deleteObject } = await import('firebase/storage')
+        await deleteObject(ref(storage, current))
+      } catch {
+        // 이미 지워졌거나 권한 문제 등은 조용히 무시 — 화면에서 썸네일은 이미 비워졌음
+      }
+    }
+    setMsg('✓ 썸네일을 삭제했습니다.')
+  }
+
   const on = (e) => {
     const { name, value, type, checked } = e.target
     setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
@@ -406,7 +423,13 @@ function TravelAdmin() {
           {form.thumbnail && (
             <div className="field">
               <label>썸네일 미리보기</label>
-              <img src={form.thumbnail} alt="" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--line)' }} />
+              <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
+                <img src={form.thumbnail} alt="" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--line)', display: 'block' }} />
+                <button type="button" onClick={removeThumbnail} title="썸네일 삭제"
+                  style={{ position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(15,23,42,.72)', color: '#fff', fontSize: '1rem', lineHeight: 1, cursor: 'pointer' }}>
+                  ✕
+                </button>
+              </div>
             </div>
           )}
 
