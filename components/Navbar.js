@@ -27,7 +27,7 @@ export default function Navbar() {
               {n.label}
             </Link>
           ))}
-          <a href={SITE.blog} target="_blank" rel="noreferrer" className="ext" onClick={close}>네이버 블로그 ↗</a>
+          <Link href="/travel" onClick={close} className={isActive('/travel') ? 'active' : undefined}>양성길의 세계여행</Link>
           <Link href="/contact" className="btn btn--primary nav__cta" onClick={close}>강의 문의</Link>
         </nav>
 

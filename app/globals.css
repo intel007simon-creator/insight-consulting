@@ -117,6 +117,15 @@ ul { margin: 0; padding: 0; list-style: none; }
 .postcard__tags { margin-top:14px; display:flex; flex-wrap:wrap; gap:6px; }
 .tag { font-size:.76rem; color: var(--blue-700); background: var(--blue-50); padding:3px 9px; border-radius:6px; }
 
+/* Travel cards (양성길의 세계여행) */
+.travelcard { padding:0; overflow:hidden; }
+.travelcard__thumb { width:100%; aspect-ratio: 4 / 3; background: var(--soft); overflow:hidden; }
+.travelcard__thumb img { width:100%; height:100%; object-fit:cover; }
+.travelcard__thumb--placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color: var(--blue-600); font-weight:700; background: linear-gradient(135deg, var(--blue-50), #eef4ff); }
+.travelcard__body { padding:20px 22px 22px; display:flex; flex-direction:column; flex:1; }
+.travelcard__link { margin-top:14px; font-size:.86rem; font-weight:600; color: var(--blue-700); }
+
+
 /* Category chips */
 .catgrid { display:grid; gap:26px; }
 .catgroup h4 { font-size:.85rem; letter-spacing:.08em; color: var(--muted); text-transform:uppercase; margin-bottom:12px; }
