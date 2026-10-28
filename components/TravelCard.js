@@ -1,9 +1,11 @@
+import { proxiedImageUrl } from '@/lib/imageProxy'
+
 export default function TravelCard({ post }) {
   return (
     <a href={post.naver_url} target="_blank" rel="noreferrer" className="postcard travelcard">
       <div className="travelcard__thumb">
         {post.thumbnail
-          ? <img src={post.thumbnail} alt={post.title} loading="lazy" />
+          ? <img src={proxiedImageUrl(post.thumbnail)} alt={post.title} loading="lazy" />
           : <div className="travelcard__thumb--placeholder">양성길의 세계여행</div>}
       </div>
       <div className="travelcard__body">

@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { getDb, getAuthClient, getStorageClient } from '@/lib/firebase'
 import { ALL_CATEGORIES } from '@/lib/categories'
 import { getAllTravelPostsForAdmin, TRAVEL_COLLECTION } from '@/lib/travel'
+import { proxiedImageUrl } from '@/lib/imageProxy'
 
 function todayStr() {
   const d = new Date()
@@ -424,7 +425,7 @@ function TravelAdmin() {
             <div className="field">
               <label>썸네일 미리보기</label>
               <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-                <img src={form.thumbnail} alt="" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--line)', display: 'block' }} />
+                <img src={proxiedImageUrl(form.thumbnail)} alt="" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--line)', display: 'block' }} />
                 <button type="button" onClick={removeThumbnail} title="썸네일 삭제"
                   style={{ position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(15,23,42,.72)', color: '#fff', fontSize: '1rem', lineHeight: 1, cursor: 'pointer' }}>
                   ✕
@@ -472,7 +473,7 @@ function TravelAdmin() {
             {posts.map((p) => (
               <div key={p.id} className="card" style={{ padding: '14px 16px', display: 'flex', gap: 14 }}>
                 {p.thumbnail
-                  ? <img src={p.thumbnail} alt="" style={{ width: 84, height: 64, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
+                  ? <img src={proxiedImageUrl(p.thumbnail)} alt="" style={{ width: 84, height: 64, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
                   : <div style={{ width: 84, height: 64, borderRadius: 8, background: 'var(--soft)', flex: 'none' }} />}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="postcard__meta" style={{ marginBottom: 4 }}>
