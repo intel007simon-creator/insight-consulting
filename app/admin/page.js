@@ -22,9 +22,10 @@ const btnSm = { padding: '7px 14px', fontSize: '.85rem' }
 export default function Admin() {
   const [ready, setReady] = useState(false)
   const [user, setUser] = useState(null)
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [pw, setPw] = useState('')
   const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
   const [tab, setTab] = useState('posts')
 
   useEffect(() => {
@@ -39,12 +40,23 @@ export default function Admin() {
   }, [])
 
   async function login(e) {
-    e.preventDefault(); setErr('')
+    e.preventDefault(); setErr(''); setBusy(true)
     try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password: pw }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '로그인 실패')
       const auth = getAuthClient()
-      const { signInWithEmailAndPassword } = await import('firebase/auth')
-      await signInWithEmailAndPassword(auth, email, pw)
-    } catch (e) { setErr('로그인 실패: ' + (e.code || e.message)) }
+      const { signInWithCustomToken } = await import('firebase/auth')
+      await signInWithCustomToken(auth, data.token)
+    } catch (e) {
+      setErr(e.message || '로그인 실패')
+    } finally {
+      setBusy(false)
+    }
   }
   async function logout() {
     const auth = getAuthClient()
@@ -60,14 +72,11 @@ export default function Admin() {
         <span className="eyebrow">Admin</span>
         <h1 className="section-title" style={{ marginBottom: 18 }}>관리자 로그인</h1>
         <form className="form" onSubmit={login}>
-          <div className="field"><label htmlFor="e">이메일</label><input id="e" type="email" value={email} onChange={(ev) => setEmail(ev.target.value)} required /></div>
-          <div className="field"><label htmlFor="p">비밀번호</label><input id="p" type="password" value={pw} onChange={(ev) => setPw(ev.target.value)} required /></div>
+          <div className="field"><label htmlFor="e">아이디</label><input id="e" type="text" autoComplete="username" value={username} onChange={(ev) => setUsername(ev.target.value)} required /></div>
+          <div className="field"><label htmlFor="p">비밀번호</label><input id="p" type="password" autoComplete="current-password" value={pw} onChange={(ev) => setPw(ev.target.value)} required /></div>
           {err && <p style={{ color: '#c0392b', marginBottom: 12 }}>{err}</p>}
-          <button className="btn btn--primary" style={{ width: '100%', justifyContent: 'center' }}>로그인</button>
+          <button className="btn btn--primary" style={{ width: '100%', justifyContent: 'center' }} disabled={busy}>{busy ? '확인 중…' : '로그인'}</button>
         </form>
-        <p style={{ color: 'var(--muted)', fontSize: '.86rem', marginTop: 14 }}>
-          Firebase 콘솔 → Authentication 에서 만든 관리자 계정으로 로그인하세요.
-        </p>
       </div></section>
     )
   }
@@ -77,7 +86,7 @@ export default function Admin() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
         <div><span className="eyebrow">Admin</span><h1 className="section-title">콘텐츠 관리</h1></div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ color: 'var(--muted)', fontSize: '.9rem' }}>{user.email}</span>
+          <span style={{ color: 'var(--muted)', fontSize: '.9rem' }}>관리자</span>
           <button className="btn btn--outline" onClick={logout}>로그아웃</button>
         </div>
       </div>
