@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="footer__top">
           <div>
             <div className="brand">
-              <span className="brand__mark">IC</span>
+              <span className="footer__logo"><img src="/logo.png" alt="인싸이트컨설팅 로고" width="32" height="32" /></span>
               <span className="brand__text">
                 <span className="brand__ko">{SITE.company}</span>
                 <span className="brand__en">Insight Consulting</span>
