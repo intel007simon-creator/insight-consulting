@@ -28,7 +28,7 @@ export default function Navbar() {
             </Link>
           ))}
           <Link href="/travel" onClick={close} className={isActive('/travel') ? 'active' : undefined}>양성길의세계여행</Link>
-          <Link href="/contact" className="btn btn--primary nav__cta" onClick={close}>강의 문의</Link>
+          <Link href="/profile#contact" className="btn btn--primary nav__cta" onClick={close}>강의 문의</Link>
         </nav>
 
         <button className="nav__toggle" aria-label="메뉴" aria-expanded={open} onClick={() => setOpen((v) => !v)}>

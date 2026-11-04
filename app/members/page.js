@@ -8,7 +8,7 @@ export default function Members() {
       <p style={{ color: 'var(--muted)', margin: '10px auto 22px', maxWidth: 520 }}>
         관심 분야 설정, 즐겨찾기, 뉴스레터, 회원 전용 자료 등을 제공하는 회원 시스템을 준비 중입니다.
       </p>
-      <Link href="/contact" className="btn btn--outline">문의하기</Link>
+      <Link href="/profile#contact" className="btn btn--outline">문의하기</Link>
     </div></section>
   )
 }

@@ -28,7 +28,7 @@ export default async function Home() {
             <p className="hero__slogan">{SITE.slogan}</p>
             <div className="hero__actions">
               <Link href="/futuresalon" className="btn btn--primary">미래살롱 보기</Link>
-              <Link href="/contact" className="btn btn--ghost">강의 문의</Link>
+              <Link href="/profile#contact" className="btn btn--ghost">강의 문의</Link>
               <Link href="/profile" className="btn btn--ghost">양성길대표 소개</Link>
             </div>
           </div>
@@ -178,7 +178,7 @@ export default async function Home() {
             <p>인공지능, 미래사회, 4차산업혁명, 블록체인, 디지털전환, 바이브코딩까지 — 맞춤형으로 함께합니다.</p>
             <div className="hero__actions">
               <Link href="/profile#lecture" className="btn btn--primary">강의·컨설팅 안내</Link>
-              <Link href="/contact" className="btn btn--ghost">문의하기</Link>
+              <Link href="/profile#contact" className="btn btn--ghost">문의하기</Link>
               <a href={SITE.blog} target="_blank" rel="noreferrer" className="btn btn--ghost">네이버 블로그 ↗</a>
             </div>
           </div>

@@ -39,7 +39,7 @@ export default function Footer() {
               <li><a href={SITE.youtube} target="_blank" rel="noreferrer">양성길TV</a></li>
               <li><a href={SITE.facebook} target="_blank" rel="noreferrer">Facebook</a></li>
               <li><a href={SITE.linkedin} target="_blank" rel="noreferrer">LinkedIn</a></li>
-              <li><Link href="/contact">문의하기</Link></li>
+              <li><Link href="/profile#contact">문의하기</Link></li>
             </ul>
           </div>
         </div>

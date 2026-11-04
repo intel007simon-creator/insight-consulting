@@ -1,10 +1,21 @@
-import Link from 'next/link'
 import { SITE } from '@/lib/site'
+import CardSlider from '@/components/CardSlider'
+import ContactSection from '@/components/ContactSection'
 
 export const metadata = {
-  title: '양성길대표 (Simon Yang) · 프로필 · 강의 · 컨설팅 · 저서 · 미디어',
-  description: '前 Intel·LG 엔지니어 출신 미래기술 전문가, 인싸이트컨설팅 대표 양성길(Simon Yang)의 프로필과 인공지능·블록체인·4차산업혁명·디지털전환·바이브코딩 강의·컨설팅, 저서와 방송·언론 활동.',
+  title: '양성길대표 (Simon Yang) · 프로필 · 강의 · 컨설팅 · 저서 · 미디어 · 문의',
+  description: '前 Intel·LG 엔지니어 출신 미래기술 전문가, 인싸이트컨설팅 대표 양성길(Simon Yang)의 프로필과 인공지능·블록체인·4차산업혁명·디지털전환·바이브코딩 강의·컨설팅, 저서와 방송·언론 활동, 강의·컨설팅 문의.',
 }
+
+// 양성길대표 명함 (슬라이드 6장)
+const CARDS = [
+  { src: '/profile/card-1.webp', alt: '인싸이트컨설팅 대표 양성길(CEO Simon Yang) 명함 — 전화 +82.10.9205.7711, 이메일 intel007@naver.com, 홈페이지 insightconsulting.kr, 블로그 blog.naver.com/intel007' },
+  { src: '/profile/card-2.webp', alt: '양성길대표 주요 이력 — 인싸이트컨설팅 대표, 블록체인·AI기술평가위원, 블록체인투데이 전문위원, 한국AI교육협회 수석부회장, 前 Intel·LG전자 엔지니어' },
+  { src: '/profile/card-3.webp', alt: '방송출연 & 저서 — YTN, 한국경제TV, MBC, 이데일리TV, EBS 출연과 패시브 인컴, 4차 산업혁명 Why? 등 저서' },
+  { src: '/profile/card-4.webp', alt: '특강 — H그룹 사장단, 그랜드 워커힐호텔, 코엑스, 부산벡스코, 소노벨비발디파크 대규모 강연' },
+  { src: '/profile/card-5.webp', alt: '양성길의세계여행 블로그 Since 2004.4.6 누적 방문자 2,900만 명 돌파, 인싸이트컨설팅 Since 2005.4.19' },
+  { src: '/profile/card-6.webp', alt: 'Healing Tour Club Since 2011.12.26 — Chairman Simon Yang' },
+]
 
 const POSITIONS = ['인싸이트컨설팅 대표', '블록체인 평가위원 (정보통신산업진흥원 / 과기정통부)', '블록체인투데이 전문위원', '한국AI교육협회 수석부회장', '아시아로 자문교수', '세계전뇌학습아카데미 전문위원', '힐링투어클럽 회장']
 const CAREER = [
@@ -52,6 +63,9 @@ export default function Profile() {
             미래기술과 사회변화를 주제로 정부기관·대기업에 맞춤형 강의와 컨설팅을 제공합니다.
             2004년부터 운영해 온 ‘양성길의세계여행’ 블로그는 누적 방문객 2,900만+를 기록하고 있습니다.
           </p>
+        </div>
+        <div className="container" id="card" style={{ marginTop: 36 }}>
+          <CardSlider slides={CARDS} />
         </div>
       </section>
 
@@ -122,14 +136,7 @@ export default function Profile() {
         </div>
       </section>
 
-      <section className="section">
-        <div className="container"><div className="cta">
-          <h2>강의 · 컨설팅 문의</h2>
-          <p>주제, 일정, 대상 인원을 알려주시면 맞춤 제안을 드립니다. 정부기관·대기업 맞춤형 교육부터 미래 전략 컨설팅까지 함께합니다.</p>
-          <div className="hero__actions"><Link href="/contact" className="btn btn--primary">강의 문의하기</Link>
-          <a href={SITE.blog} target="_blank" rel="noreferrer" className="btn btn--ghost">네이버 블로그 ↗</a></div>
-        </div></div>
-      </section>
+      <ContactSection />
     </>
   )
 }
