@@ -20,9 +20,7 @@ export default function Footer() {
             <h4>회사</h4>
             <ul>
               <li><Link href="/about">회사소개</Link></li>
-              <li><Link href="/profile">양성길 대표</Link></li>
-              <li><Link href="/lecture">강의·컨설팅</Link></li>
-              <li><Link href="/media">저서·미디어</Link></li>
+              <li><Link href="/profile">양성길대표</Link></li>
             </ul>
           </div>
           <div>

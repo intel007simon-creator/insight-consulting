@@ -7,7 +7,7 @@ export const revalidate = 3600
 
 export default async function sitemap() {
   const base = SITE.domain
-  const staticPaths = ['', '/about', '/profile', '/lecture', '/futuresalon', '/travel', '/media', '/library', '/members', '/contact', '/search']
+  const staticPaths = ['', '/about', '/profile', '/futuresalon', '/travel', '/library', '/members', '/contact', '/search']
   const cats = ALL_CATEGORIES.map((c) => `/futuresalon/${c.slug}`)
   // 한글 슬러그는 퍼센트 인코딩해야 사이트맵 URL로 유효합니다.
   const posts = (await getAllPostRefs()).map((p) => `/futuresalon/${p.category}/${encodeURIComponent(p.slug)}`)

@@ -10,7 +10,7 @@ export const metadata = {
   metadataBase: new URL(SITE.domain),
   title: { default: SITE_TITLE, template: `%s | ${SITE.company} ${SITE.ceo}` },
   description: SITE_DESC,
-  keywords: ['양성길', '양성길의 세계여행', '양성길의세계여행', '인싸이트컨설팅', '인사이트컨설팅', '인싸이트 컨설팅', '양성길 대표', '양성길 강사', 'Simon Yang', 'Insight Consulting', '미래살롱', 'AI 강의', '인공지능 강사', '블록체인 강의', '4차산업혁명 강사', '바이브코딩 강의', '미래예측', '기업 특강'],
+  keywords: ['양성길', '양성길의 세계여행', '양성길의세계여행', '인싸이트컨설팅', '인사이트컨설팅', '인싸이트 컨설팅', '양성길 대표', '양성길대표', '양성길 강사', 'Simon Yang', 'Insight Consulting', '미래살롱', 'AI 강의', '인공지능 강사', '블록체인 강의', '4차산업혁명 강사', '바이브코딩 강의', '미래예측', '기업 특강'],
   authors: [{ name: SITE.ceo, url: `${SITE.domain}/profile` }],
   openGraph: {
     type: 'website', locale: 'ko_KR', siteName: `${SITE.company} ${SITE.ceo}`,
@@ -37,7 +37,7 @@ const jsonLd = {
       alternateName: ['인사이트컨설팅', '인싸이트 컨설팅', SITE.companyEn], url: SITE.domain, email: SITE.email,
       telephone: SITE.phoneTel, logo: `${SITE.domain}/profile-round.png`, foundingDate: '2005',
       description: SITE_DESC, founder: { '@id': `${SITE.domain}/#ceo` }, sameAs: SAME_AS },
-    { '@type': 'Person', '@id': `${SITE.domain}/#ceo`, name: SITE.ceo, alternateName: [SITE.ceoEn, '양성길 대표', '양성길의 세계여행'],
+    { '@type': 'Person', '@id': `${SITE.domain}/#ceo`, name: SITE.ceo, alternateName: [SITE.ceoEn, '양성길 대표', '양성길대표', '양성길의 세계여행'],
       jobTitle: '인싸이트컨설팅 대표', worksFor: { '@id': `${SITE.domain}/#org` },
       image: `${SITE.domain}/profile-round.png`, url: `${SITE.domain}/profile`,
       alumniOf: '명지대학교 전자공학과',
