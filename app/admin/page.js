@@ -114,7 +114,7 @@ function tabBtn(active) {
 
 const EMPTY_POST = {
   title: '', slug: '', category: 'ai', subcategory: '', summary: '', content: '',
-  tags: '', naver_url: '', corner: '', forecastYear: '', archiveVerdict: '',
+  tags: '', naver_url: '', thumbnail: '', corner: '', forecastYear: '', archiveVerdict: '',
   published_at: '', display_order: 100, is_home: true, is_featured: false, is_pinned: false, status: 'published',
 }
 
@@ -124,6 +124,29 @@ function PostsAdmin() {
   const [editingId, setEditingId] = useState(null)
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
+  const [fetching, setFetching] = useState(false)
+
+  async function fetchPreview() {
+    const url = form.naver_url.trim()
+    if (!url) { setMsg('먼저 네이버 블로그 글 주소를 입력해 주세요.'); return }
+    setFetching(true); setMsg('')
+    try {
+      const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '가져오기 실패')
+      // 이미 작성한 제목·요약은 덮어쓰지 않고, 비어 있을 때만 채웁니다.
+      setForm((f) => ({
+        ...f,
+        title: f.title || data.title || '',
+        summary: f.summary || data.summary || '',
+        thumbnail: data.thumbnail || f.thumbnail,
+      }))
+      setMsg(data.thumbnail ? '✓ 원문의 대표 이미지를 불러왔습니다.' : '원문에서 대표 이미지를 찾지 못했습니다. 직접 올려 주세요.')
+    } catch (e) {
+      setMsg('불러오기 오류: ' + e.message)
+    }
+    setFetching(false)
+  }
 
   useEffect(() => { loadPosts() }, [])
 
@@ -161,6 +184,7 @@ function PostsAdmin() {
         summary: form.summary.trim(), content: form.content.trim(),
         tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
         naver_url: form.naver_url.trim(),
+        thumbnail: (form.thumbnail || '').trim(),
         corner: form.corner || null, forecastYear: form.forecastYear || null, archiveVerdict: form.archiveVerdict || null,
         published_at: form.published_at || todayStr(),
         updated_at: todayStr(),
@@ -205,7 +229,17 @@ function PostsAdmin() {
           <div className="field"><label>요약</label><textarea name="summary" value={form.summary} onChange={on} style={{ minHeight: 70 }} /></div>
           <div className="field"><label>본문 *</label><textarea name="content" value={form.content} onChange={on} required style={{ minHeight: 180 }} placeholder="문단은 빈 줄로 구분됩니다." /></div>
           <div className="field"><label>태그 (쉼표로 구분)</label><input name="tags" value={form.tags} onChange={on} placeholder="인공지능, 미래예측" /></div>
-          <div className="field"><label>네이버 원문 URL</label><input name="naver_url" value={form.naver_url} onChange={on} placeholder="https://blog.naver.com/intel007/..." /></div>
+          <div className="field"><label>네이버 원문 URL</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input name="naver_url" value={form.naver_url} onChange={on} placeholder="https://blog.naver.com/intel007/..." style={{ flex: 1 }} />
+              <button type="button" className="btn btn--outline" onClick={fetchPreview} disabled={fetching} style={{ whiteSpace: 'nowrap' }}>
+                {fetching ? '불러오는 중…' : '가져오기'}
+              </button>
+            </div>
+            <p style={{ color: 'var(--muted)', fontSize: '.82rem', marginTop: 6 }}>가져오기를 누르면 원문의 대표 이미지를 불러오고, 비어 있는 제목·요약도 채워줍니다.</p>
+          </div>
+          <ThumbnailField value={form.thumbnail} folder="post-thumbnails" setMsg={setMsg}
+            onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))} />
           <div className="field"><label>코너</label>
             <select name="corner" value={form.corner} onChange={on} style={selStyle}>
               <option value="">일반</option><option value="insight">Future Insight</option>
@@ -239,7 +273,11 @@ function PostsAdmin() {
           {posts.length === 0 && <p style={{ color: 'var(--muted)' }}>아직 글이 없습니다. 왼쪽에서 첫 글을 등록해 보세요.</p>}
           <div style={{ display: 'grid', gap: 10 }}>
             {posts.map((p) => (
-              <div key={p.id} className="card" style={{ padding: '14px 16px' }}>
+              <div key={p.id} className="card" style={{ padding: '14px 16px', display: 'flex', gap: 14 }}>
+                {p.thumbnail
+                  ? <img src={proxiedImageUrl(p.thumbnail)} alt="" style={{ width: 84, height: 64, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
+                  : <div style={{ width: 84, height: 64, borderRadius: 8, background: 'var(--soft)', flex: 'none' }} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="postcard__meta" style={{ marginBottom: 6 }}>
                   {p.is_pinned && <span className="chip chip--pin">추천</span>}
                   <span className="chip">{p.category}</span>
@@ -252,6 +290,7 @@ function PostsAdmin() {
                   <Link className="btn btn--outline" style={btnSm} href={`/futuresalon/${p.category}/${encodeURIComponent(p.slug)}`} target="_blank">보기</Link>
                   {p.naver_url && <a className="btn btn--outline" style={btnSm} href={p.naver_url} target="_blank" rel="noreferrer">원문</a>}
                   <button className="btn btn--outline" style={{ ...btnSm, color: '#c0392b' }} onClick={() => remove(p)}>삭제</button>
+                </div>
                 </div>
               </div>
             ))}
@@ -276,7 +315,6 @@ function TravelAdmin() {
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const [fetching, setFetching] = useState(false)
-  const [uploading, setUploading] = useState(false)
 
   useEffect(() => { loadPosts() }, [])
 
@@ -285,48 +323,6 @@ function TravelAdmin() {
       const rows = await getAllTravelPostsForAdmin()
       setPosts(rows)
     } catch (e) { setMsg('목록 로드 오류: ' + e.message) }
-  }
-
-  async function uploadThumbnail(e) {
-    const file = e.target.files && e.target.files[0]
-    e.target.value = '' // 같은 파일을 다시 골라도 onChange가 매번 발생하도록 초기화
-    if (!file) return
-    if (!file.type.startsWith('image/')) { setMsg('이미지 파일만 업로드할 수 있습니다.'); return }
-    if (file.size > 8 * 1024 * 1024) { setMsg('이미지 용량은 8MB 이하여야 합니다.'); return }
-
-    setUploading(true); setMsg('')
-    try {
-      const storage = getStorageClient()
-      if (!storage) throw new Error('Firebase Storage가 설정되어 있지 않습니다.')
-      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage')
-      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
-      const path = `travel-thumbnails/${Date.now()}-${safeName}`
-      const fileRef = ref(storage, path)
-      await uploadBytes(fileRef, file, { contentType: file.type })
-      const url = await getDownloadURL(fileRef)
-      setForm((f) => ({ ...f, thumbnail: url }))
-      setMsg('✓ 썸네일 이미지를 업로드했습니다.')
-    } catch (e) {
-      setMsg('업로드 오류: ' + (e.message || String(e)))
-    }
-    setUploading(false)
-  }
-
-  async function removeThumbnail() {
-    const current = form.thumbnail
-    setForm((f) => ({ ...f, thumbnail: '' }))
-    // 우리가 직접 업로드한 파일(travel-thumbnails/ 경로)이면 Storage에서도 함께 지워
-    // 안 쓰는 이미지가 쌓이지 않도록 한다. 블로그에서 가져온 외부 이미지 URL이면 건드리지 않는다.
-    if (current && /travel-thumbnails%2F/.test(current)) {
-      try {
-        const storage = getStorageClient()
-        const { ref, deleteObject } = await import('firebase/storage')
-        await deleteObject(ref(storage, current))
-      } catch {
-        // 이미 지워졌거나 권한 문제 등은 조용히 무시 — 화면에서 썸네일은 이미 비워졌음
-      }
-    }
-    setMsg('✓ 썸네일을 삭제했습니다.')
   }
 
   const on = (e) => {
@@ -422,32 +418,10 @@ function TravelAdmin() {
             </div>
           </div>
 
-          {form.thumbnail && (
-            <div className="field">
-              <label>썸네일 미리보기</label>
-              <div style={{ position: 'relative', display: 'inline-block', width: '100%' }}>
-                <img src={proxiedImageUrl(form.thumbnail)} alt="" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--line)', display: 'block' }} />
-                <button type="button" onClick={removeThumbnail} title="썸네일 삭제"
-                  style={{ position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(15,23,42,.72)', color: '#fff', fontSize: '1rem', lineHeight: 1, cursor: 'pointer' }}>
-                  ✕
-                </button>
-              </div>
-            </div>
-          )}
-
           <div className="field"><label>제목 *</label><input name="title" value={form.title} onChange={on} required /></div>
           <div className="field"><label>요약</label><textarea name="summary" value={form.summary} onChange={on} style={{ minHeight: 80 }} /></div>
-          <div className="field">
-            <label>썸네일 이미지 URL</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input name="thumbnail" value={form.thumbnail} onChange={on} placeholder="자동으로 채워지거나 직접 입력" style={{ flex: 1 }} />
-              <label className="btn btn--outline" style={{ ...btnSm, whiteSpace: 'nowrap', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
-                {uploading ? '업로드 중…' : '파일로 추가'}
-                <input type="file" accept="image/*" onChange={uploadThumbnail} disabled={uploading} style={{ display: 'none' }} />
-              </label>
-            </div>
-            <p style={{ color: 'var(--muted)', fontSize: '.82rem', marginTop: 6 }}>블로그에서 자동으로 가져오거나, URL을 직접 입력하거나, 내 컴퓨터에 있는 이미지를 올릴 수 있습니다. (최대 8MB)</p>
-          </div>
+          <ThumbnailField value={form.thumbnail} folder="travel-thumbnails" setMsg={setMsg}
+            onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))} />
 
           <div className="grid grid--2" style={{ gap: 12 }}>
             <div className="field"><label>작성일 (비우면 오늘)</label><input name="published_at" value={form.published_at} onChange={on} placeholder="2018-02-20" /></div>
@@ -495,5 +469,76 @@ function TravelAdmin() {
         </div>
       </div>
     </>
+  )
+}
+
+/* ========================= 공용: 대표 이미지(썸네일) 입력 ========================= */
+
+// 미리보기 + URL 입력 + 파일 업로드 + 삭제. 미래살롱/세계여행 폼이 함께 사용합니다.
+// folder: Storage 업로드 경로 (storage.rules에서 쓰기를 허용한 폴더여야 함)
+function ThumbnailField({ value, onChange, folder, setMsg }) {
+  const [uploading, setUploading] = useState(false)
+
+  async function upload(e) {
+    const file = e.target.files && e.target.files[0]
+    e.target.value = '' // 같은 파일을 다시 골라도 onChange가 매번 발생하도록 초기화
+    if (!file) return
+    if (!file.type.startsWith('image/')) { setMsg('이미지 파일만 업로드할 수 있습니다.'); return }
+    if (file.size > 8 * 1024 * 1024) { setMsg('이미지 용량은 8MB 이하여야 합니다.'); return }
+
+    setUploading(true); setMsg('')
+    try {
+      const storage = getStorageClient()
+      if (!storage) throw new Error('Firebase Storage가 설정되어 있지 않습니다.')
+      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage')
+      const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')
+      const fileRef = ref(storage, `${folder}/${Date.now()}-${safeName}`)
+      await uploadBytes(fileRef, file, { contentType: file.type })
+      onChange(await getDownloadURL(fileRef))
+      setMsg('✓ 대표 이미지를 업로드했습니다.')
+    } catch (e) {
+      setMsg('업로드 오류: ' + (e.message || String(e)))
+    }
+    setUploading(false)
+  }
+
+  async function remove() {
+    const current = value
+    onChange('')
+    // 우리가 직접 업로드한 파일(folder/ 경로)이면 Storage에서도 함께 지워 안 쓰는 이미지가 쌓이지 않도록 한다.
+    // 블로그에서 가져온 외부 이미지 URL이면 건드리지 않는다.
+    if (current && current.includes(`${folder}%2F`)) {
+      try {
+        const storage = getStorageClient()
+        const { ref, deleteObject } = await import('firebase/storage')
+        await deleteObject(ref(storage, current))
+      } catch {
+        // 이미 지워졌거나 권한 문제 등은 조용히 무시 — 화면에서 썸네일은 이미 비워졌음
+      }
+    }
+    setMsg('✓ 대표 이미지를 삭제했습니다.')
+  }
+
+  return (
+    <div className="field">
+      <label>대표 이미지 (썸네일)</label>
+      {value && (
+        <div style={{ position: 'relative', marginBottom: 8 }}>
+          <img src={proxiedImageUrl(value)} alt="" style={{ width: '100%', maxHeight: 180, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--line)', display: 'block' }} />
+          <button type="button" onClick={remove} title="대표 이미지 삭제"
+            style={{ position: 'absolute', top: 8, right: 8, width: 30, height: 30, borderRadius: '50%', border: 'none', background: 'rgba(15,23,42,.72)', color: '#fff', fontSize: '1rem', lineHeight: 1, cursor: 'pointer' }}>
+            ✕
+          </button>
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input value={value || ''} onChange={(e) => onChange(e.target.value)} placeholder="자동으로 채워지거나 직접 입력" style={{ flex: 1 }} />
+        <label className="btn btn--outline" style={{ ...btnSm, whiteSpace: 'nowrap', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+          {uploading ? '업로드 중…' : '파일로 추가'}
+          <input type="file" accept="image/*" onChange={upload} disabled={uploading} style={{ display: 'none' }} />
+        </label>
+      </div>
+      <p style={{ color: 'var(--muted)', fontSize: '.82rem', marginTop: 6 }}>블로그에서 자동으로 가져오거나, URL을 직접 입력하거나, 내 컴퓨터에 있는 이미지를 올릴 수 있습니다. (최대 8MB)</p>
+    </div>
   )
 }

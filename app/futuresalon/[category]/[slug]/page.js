@@ -3,6 +3,13 @@ import { notFound } from 'next/navigation'
 import { SITE } from '@/lib/site'
 import { getCategory } from '@/lib/categories'
 import { getPost } from '@/lib/data'
+import { proxiedImageUrl } from '@/lib/imageProxy'
+
+// 네이버 이미지는 핫링크가 막혀 있어 공유 미리보기에서도 우리 프록시(/api/image-proxy) 경유 주소를 씁니다.
+function ogImageUrl(url) {
+  const u = proxiedImageUrl(url)
+  return u.startsWith('/') ? `${SITE.domain}${u}` : u
+}
 
 export async function generateMetadata({ params }) {
   const { category, slug } = await params
@@ -11,7 +18,10 @@ export async function generateMetadata({ params }) {
   return {
     title: post.title,
     description: post.summary,
-    openGraph: { type: 'article', title: post.title, description: post.summary, publishedTime: post.published_at },
+    openGraph: {
+      type: 'article', title: post.title, description: post.summary, publishedTime: post.published_at,
+      ...(post.thumbnail ? { images: [ogImageUrl(post.thumbnail)] } : {}),
+    },
   }
 }
 
@@ -27,6 +37,7 @@ export default async function PostPage({ params }) {
     datePublished: post.published_at, dateModified: post.updated_at || post.published_at,
     author: { '@type': 'Person', name: post.author || SITE.ceo },
     publisher: { '@type': 'Organization', name: SITE.company },
+    ...(post.thumbnail ? { image: ogImageUrl(post.thumbnail) } : {}),
   }
 
   return (
@@ -46,6 +57,11 @@ export default async function PostPage({ params }) {
         </div>
         <h1 style={{ fontSize: 'clamp(1.7rem,4vw,2.5rem)', lineHeight: 1.25 }}>{post.title}</h1>
         <p style={{ marginTop: 16, fontSize: '1.15rem', color: 'var(--muted)' }}>{post.summary}</p>
+
+        {post.thumbnail && (
+          <img src={proxiedImageUrl(post.thumbnail)} alt={post.title}
+            style={{ width: '100%', marginTop: 24, borderRadius: 'var(--radius)', border: '1px solid var(--line)', display: 'block' }} />
+        )}
 
         <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '28px 0' }} />
 
