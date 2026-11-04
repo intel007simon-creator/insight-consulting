@@ -14,7 +14,7 @@ export default function Footer() {
                 <span className="brand__en">Insight Consulting</span>
               </span>
             </div>
-            <p className="footer__desc">{SITE.brandEn}<br />{SITE.slogan}</p>
+            <p className="footer__desc">{SITE.company}(인사이트컨설팅) 대표 {SITE.ceo} · Since 2005<br />{SITE.brandEn}<br />{SITE.slogan}</p>
           </div>
           <div>
             <h4>회사</h4>

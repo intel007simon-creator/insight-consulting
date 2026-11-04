@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-export const metadata = { title: '강의 · 컨설팅', description: '인공지능·미래사회·4차산업혁명·블록체인·디지털전환·바이브코딩 등 맞춤형 강의와 컨설팅.' }
+export const metadata = { title: 'AI·블록체인·4차산업혁명 강의 · 컨설팅', description: '인공지능·미래사회·4차산업혁명·블록체인·디지털전환·바이브코딩 등 맞춤형 강의와 컨설팅.' }
 const AREAS = [
   { icon: '🧠', t: '인공지능 · AI', d: 'AI가 바꾸는 산업과 일. 경영진·실무자 눈높이 강의.' },
   { icon: '🌐', t: '미래사회 · 미래예측', d: '다가올 변화를 읽고 조직의 방향을 설계합니다.' },

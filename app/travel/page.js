@@ -5,7 +5,7 @@ import TravelCard from '@/components/TravelCard'
 export const revalidate = 60
 export const metadata = {
   title: '양성길의 세계여행',
-  description: '2004년부터 이어온 세계여행 기록. 양성길의 세계여행 네이버 블로그에서 엄선한 여행기를 모았습니다.',
+  description: '양성길의 세계여행 — 2004년부터 이어온 누적 방문 3천만 네이버 블로그. 인싸이트컨설팅(인사이트컨설팅) 양성길 대표가 직접 다녀온 세계 여행기를 모았습니다.',
 }
 
 export default async function Travel() {

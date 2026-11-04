@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { SITE } from '@/lib/site'
 
-export const metadata = { title: '양성길 대표 (Simon Yang)', description: '前 Intel·LG 엔지니어 출신 미래기술 전문가, 인싸이트컨설팅 대표 양성길(Simon Yang)의 프로필.' }
+export const metadata = { title: '양성길 대표 프로필 (Simon Yang)', description: '前 Intel·LG 엔지니어 출신 미래기술 전문가, 인싸이트컨설팅 대표 양성길(Simon Yang)의 프로필.' }
 
 const POSITIONS = ['인싸이트컨설팅 대표', '블록체인 평가위원 (정보통신산업진흥원 / 과기정통부)', '블록체인투데이 전문위원', '한국AI교육협회 수석부회장', '아시아로 자문교수', '세계전뇌학습아카데미 전문위원', '힐링투어클럽 회장']
 const CAREER = [

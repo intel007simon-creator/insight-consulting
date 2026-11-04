@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { CATEGORY_GROUPS } from '@/lib/categories'
 
-export const metadata = { title: '회사소개', description: '인싸이트컨설팅은 미래기술과 사회변화를 연구하고 기업·기관에 강의와 컨설팅을 제공하는 회사입니다.' }
+export const metadata = { title: '회사소개 — 2005년 설립 미래기술 강의·컨설팅', description: '인싸이트컨설팅(인사이트컨설팅)은 2005년부터 양성길 대표가 이끄는 회사로, 미래기술과 사회변화를 연구하고 기업·기관에 강의와 컨설팅을 제공하는 회사입니다.' }
 const FIELDS = ['인공지능', '4차산업혁명', '블록체인', 'Web3', '빅데이터', '로보틱스', '메타버스', '디지털전환', '미래사회', '신기술 전략']
 
 export default function About() {
