@@ -1,18 +1,12 @@
 // 서버에서 외부 URL(네이버 블로그 등)을 대신 가져와 og:title/og:description/og:image를 추출합니다.
 // 브라우저에서 직접 요청하면 CORS에 막히기 때문에 어드민 폼이 이 라우트를 통해 호출합니다.
+import { decodeEntities } from '@/lib/decodeEntities'
+
 export const dynamic = 'force-dynamic'
 
-function decodeEntities(s) {
+function decodeEntitiesTrim(s) {
   if (!s) return s
-  return s
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#0?39;/g, "'")
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&nbsp;/g, ' ')
-    .trim()
+  return decodeEntities(s).trim()
 }
 
 function extractMeta(html, keys) {
@@ -68,9 +62,9 @@ export async function GET(request) {
     const meta = extractMeta(html, ['og:title', 'og:description', 'og:image', 'twitter:title', 'twitter:description', 'twitter:image'])
     const titleTagMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i)
 
-    const title = decodeEntities(meta['og:title'] || meta['twitter:title'] || (titleTagMatch ? titleTagMatch[1] : '')) || ''
-    const summary = decodeEntities(meta['og:description'] || meta['twitter:description'] || '') || ''
-    let thumbnail = decodeEntities(meta['og:image'] || meta['twitter:image'] || '') || ''
+    const title = decodeEntitiesTrim(meta['og:title'] || meta['twitter:title'] || (titleTagMatch ? titleTagMatch[1] : '')) || ''
+    const summary = decodeEntitiesTrim(meta['og:description'] || meta['twitter:description'] || '') || ''
+    let thumbnail = decodeEntitiesTrim(meta['og:image'] || meta['twitter:image'] || '') || ''
     if (thumbnail && thumbnail.startsWith('//')) thumbnail = 'https:' + thumbnail
 
     return Response.json({ title, summary, thumbnail, sourceUrl: rawUrl })
