@@ -22,8 +22,7 @@ export const metadata = {
   // 네이버 서치어드바이저·구글 서치콘솔 소유확인 코드는 Vercel 환경변수로 넣습니다.
   verification: {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
-    other: process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION
-      ? { 'naver-site-verification': process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION } : undefined,
+    other: { 'naver-site-verification': process.env.NEXT_PUBLIC_NAVER_SITE_VERIFICATION || 'f2dcfc79dbe6035b98ebe9595ad2fa9a46b18581' },
   },
 }
 
