@@ -249,7 +249,8 @@ function PostsAdmin() {
                 <strong style={{ display: 'block', marginBottom: 8 }}>{p.title}</strong>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button className="btn btn--outline" style={btnSm} onClick={() => edit(p)}>수정</button>
-                  <Link className="btn btn--outline" style={btnSm} href={`/futuresalon/${p.category}/${p.slug}`} target="_blank">보기</Link>
+                  <Link className="btn btn--outline" style={btnSm} href={`/futuresalon/${p.category}/${encodeURIComponent(p.slug)}`} target="_blank">보기</Link>
+                  {p.naver_url && <a className="btn btn--outline" style={btnSm} href={p.naver_url} target="_blank" rel="noreferrer">원문</a>}
                   <button className="btn btn--outline" style={{ ...btnSm, color: '#c0392b' }} onClick={() => remove(p)}>삭제</button>
                 </div>
               </div>
