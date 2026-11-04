@@ -14,7 +14,7 @@ export default function Navbar() {
     <header className="nav">
       <div className="container nav__inner">
         <Link href="/" className="brand" onClick={close}>
-          <span className="brand__mark">IC</span>
+          <img src="/logo.png" alt="인싸이트컨설팅 로고" className="brand__logo" width="40" height="40" />
           <span className="brand__text">
             <span className="brand__ko">{SITE.company}</span>
             <span className="brand__en">Insight Consulting</span>
