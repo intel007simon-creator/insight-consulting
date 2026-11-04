@@ -27,7 +27,6 @@ export default function Admin() {
   const [pw, setPw] = useState('')
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
-  const [tab, setTab] = useState('posts')
 
   useEffect(() => {
     const auth = getAuthClient()
@@ -92,12 +91,7 @@ export default function Admin() {
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 28, borderBottom: '1px solid var(--line)' }}>
-        <button onClick={() => setTab('posts')} style={tabBtn(tab === 'posts')}>미래살롱 글</button>
-        <button onClick={() => setTab('travel')} style={tabBtn(tab === 'travel')}>양성길의 세계여행</button>
-      </div>
-
-      {tab === 'posts' ? <PostsAdmin /> : <TravelAdmin />}
+      <ContentAdmin />
     </div></section>
   )
 }
@@ -110,21 +104,61 @@ function tabBtn(active) {
   }
 }
 
-/* ========================= 미래살롱 글 관리 ========================= */
+/* ========================= 글 등록 (미래살롱 / 세계여행 통합) ========================= */
 
-const EMPTY_POST = {
-  title: '', slug: '', category: 'ai', subcategory: '', summary: '', content: '',
-  tags: '', naver_url: '', thumbnail: '', corner: '', forecastYear: '', archiveVerdict: '',
-  published_at: '', display_order: 100, is_home: true, is_featured: false, is_pinned: false, status: 'published',
+// 등록 위치별 설정. 미래살롱은 posts, 세계여행은 travel_posts 컬렉션에 저장됩니다.
+const TYPES = {
+  salon: { label: '미래살롱', collection: 'posts', folder: 'post-thumbnails' },
+  travel: { label: '양성길의세계여행', collection: TRAVEL_COLLECTION, folder: 'travel-thumbnails' },
 }
 
-function PostsAdmin() {
-  const [posts, setPosts] = useState([])
-  const [form, setForm] = useState(EMPTY_POST)
+const EMPTY_FORM = {
+  // 공통
+  naver_url: '', title: '', summary: '', thumbnail: '',
+  published_at: '', display_order: 100, is_featured: false, status: 'published',
+  // 미래살롱 전용
+  category: 'ai', content: '', tags: '', slug: '', subcategory: '',
+  corner: '', forecastYear: '', archiveVerdict: '', is_home: true, is_pinned: false,
+}
+
+const msgStyle = { padding: '10px 14px', background: 'var(--blue-50)', borderRadius: 10, marginBottom: 16, color: 'var(--blue-700)' }
+
+function ContentAdmin() {
+  const [type, setType] = useState('salon') // 기본: 미래살롱
+  const [listTab, setListTab] = useState('salon')
+  const [form, setForm] = useState(EMPTY_FORM)
   const [editingId, setEditingId] = useState(null)
+  const [salonPosts, setSalonPosts] = useState([])
+  const [travelPosts, setTravelPosts] = useState([])
   const [msg, setMsg] = useState('')
   const [busy, setBusy] = useState(false)
   const [fetching, setFetching] = useState(false)
+
+  useEffect(() => { loadSalon(); loadTravel() }, [])
+
+  async function loadSalon() {
+    try {
+      const db = getDb()
+      const { collection, getDocs } = await import('firebase/firestore')
+      const snap = await getDocs(collection(db, 'posts'))
+      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      rows.sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0))
+      setSalonPosts(rows)
+    } catch (e) { setMsg('미래살롱 목록 로드 오류: ' + e.message) }
+  }
+  async function loadTravel() {
+    try { setTravelPosts(await getAllTravelPostsForAdmin()) }
+    catch (e) { setMsg('세계여행 목록 로드 오류: ' + e.message) }
+  }
+
+  const on = (e) => {
+    const { name, value, type: t, checked } = e.target
+    setForm((f) => ({ ...f, [name]: t === 'checkbox' ? checked : value }))
+  }
+  function chooseType(t) {
+    if (editingId) return // 수정 중에는 등록 위치를 바꾸지 않음
+    setType(t); setListTab(t)
+  }
 
   async function fetchPreview() {
     const url = form.naver_url.trim()
@@ -141,276 +175,114 @@ function PostsAdmin() {
         summary: f.summary || data.summary || '',
         thumbnail: data.thumbnail || f.thumbnail,
       }))
-      setMsg(data.thumbnail ? '✓ 원문의 대표 이미지를 불러왔습니다.' : '원문에서 대표 이미지를 찾지 못했습니다. 직접 올려 주세요.')
-    } catch (e) {
-      setMsg('불러오기 오류: ' + e.message)
-    }
-    setFetching(false)
-  }
-
-  useEffect(() => { loadPosts() }, [])
-
-  async function loadPosts() {
-    try {
-      const db = getDb()
-      const { collection, getDocs } = await import('firebase/firestore')
-      const snap = await getDocs(collection(db, 'posts'))
-      const rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      rows.sort((a, b) => new Date(b.published_at || 0) - new Date(a.published_at || 0))
-      setPosts(rows)
-    } catch (e) { setMsg('목록 로드 오류: ' + e.message) }
-  }
-
-  const on = (e) => {
-    const { name, value, type, checked } = e.target
-    setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
-  }
-  function edit(p) {
-    setEditingId(p.id)
-    setForm({ ...EMPTY_POST, ...p, tags: (p.tags || []).join(', ') })
-    setMsg(''); window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-  function reset() { setEditingId(null); setForm(EMPTY_POST); setMsg('') }
-
-  async function save(e) {
-    e.preventDefault(); setBusy(true); setMsg('')
-    try {
-      const db = getDb()
-      const { collection, addDoc, doc, updateDoc } = await import('firebase/firestore')
-      const data = {
-        title: form.title.trim(),
-        slug: (form.slug || slugify(form.title)).trim(),
-        category: form.category, subcategory: form.subcategory.trim(),
-        summary: form.summary.trim(), content: form.content.trim(),
-        tags: form.tags.split(',').map((t) => t.trim()).filter(Boolean),
-        naver_url: form.naver_url.trim(),
-        thumbnail: (form.thumbnail || '').trim(),
-        corner: form.corner || null, forecastYear: form.forecastYear || null, archiveVerdict: form.archiveVerdict || null,
-        published_at: form.published_at || todayStr(),
-        updated_at: todayStr(),
-        display_order: Number(form.display_order) || 100,
-        is_home: !!form.is_home, is_featured: !!form.is_featured, is_pinned: !!form.is_pinned,
-        status: form.status, author: '양성길',
-      }
-      if (editingId) {
-        await updateDoc(doc(db, 'posts', editingId), data)
-        setMsg('✓ 수정되었습니다.')
-      } else {
-        await addDoc(collection(db, 'posts'), { ...data, views: 0 })
-        setMsg('✓ 새 글이 등록되었습니다.')
-      }
-      reset(); await loadPosts()
-    } catch (e) { setMsg('저장 오류: ' + e.message) }
-    setBusy(false)
-  }
-  async function remove(p) {
-    if (!confirm(`"${p.title}" 글을 삭제할까요?`)) return
-    try {
-      const db = getDb()
-      const { doc, deleteDoc } = await import('firebase/firestore')
-      await deleteDoc(doc(db, 'posts', p.id)); await loadPosts()
-    } catch (e) { setMsg('삭제 오류: ' + e.message) }
-  }
-
-  return (
-    <>
-      {msg && <p style={{ padding: '10px 14px', background: 'var(--blue-50)', borderRadius: 10, marginBottom: 16, color: 'var(--blue-700)' }}>{msg}</p>}
-      <div className="grid grid--2" style={{ alignItems: 'start' }}>
-        <form className="form" onSubmit={save}>
-          <h3 style={{ marginBottom: 14 }}>{editingId ? '글 수정' : '새 글 작성'}</h3>
-          <div className="field"><label>제목 *</label><input name="title" value={form.title} onChange={on} required /></div>
-          <div className="field"><label>슬러그 (URL, 비우면 자동)</label><input name="slug" value={form.slug} onChange={on} placeholder="예: 2030-ai-agent" /></div>
-          <div className="field"><label>카테고리 *</label>
-            <select name="category" value={form.category} onChange={on} style={selStyle}>
-              {ALL_CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.groupKo} · {c.ko}</option>)}
-            </select>
-          </div>
-          <div className="field"><label>서브카테고리</label><input name="subcategory" value={form.subcategory} onChange={on} /></div>
-          <div className="field"><label>요약</label><textarea name="summary" value={form.summary} onChange={on} style={{ minHeight: 70 }} /></div>
-          <div className="field"><label>본문 *</label><textarea name="content" value={form.content} onChange={on} required style={{ minHeight: 180 }} placeholder="문단은 빈 줄로 구분됩니다." /></div>
-          <div className="field"><label>태그 (쉼표로 구분)</label><input name="tags" value={form.tags} onChange={on} placeholder="인공지능, 미래예측" /></div>
-          <div className="field"><label>네이버 원문 URL</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input name="naver_url" value={form.naver_url} onChange={on} placeholder="https://blog.naver.com/intel007/..." style={{ flex: 1 }} />
-              <button type="button" className="btn btn--outline" onClick={fetchPreview} disabled={fetching} style={{ whiteSpace: 'nowrap' }}>
-                {fetching ? '불러오는 중…' : '가져오기'}
-              </button>
-            </div>
-            <p style={{ color: 'var(--muted)', fontSize: '.82rem', marginTop: 6 }}>가져오기를 누르면 원문의 대표 이미지를 불러오고, 비어 있는 제목·요약도 채워줍니다.</p>
-          </div>
-          <ThumbnailField value={form.thumbnail} folder="post-thumbnails" setMsg={setMsg}
-            onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))} />
-          <div className="field"><label>코너</label>
-            <select name="corner" value={form.corner} onChange={on} style={selStyle}>
-              <option value="">일반</option><option value="insight">Future Insight</option>
-              <option value="forecast">Future Forecast</option><option value="archive">Future Archive</option>
-            </select>
-          </div>
-          {form.corner === 'forecast' && <div className="field"><label>전망 연도 (2030/2040/2050)</label><input name="forecastYear" value={form.forecastYear} onChange={on} /></div>}
-          {form.corner === 'archive' && <div className="field"><label>아카이브 평가 (예: 일부 적중)</label><input name="archiveVerdict" value={form.archiveVerdict} onChange={on} /></div>}
-          <div className="grid grid--2" style={{ gap: 12 }}>
-            <div className="field"><label>작성일 (비우면 오늘)</label><input name="published_at" value={form.published_at} onChange={on} placeholder="2025-11-02" /></div>
-            <div className="field"><label>노출 순서</label><input name="display_order" type="number" value={form.display_order} onChange={on} /></div>
-          </div>
-          <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', margin: '4px 0 16px' }}>
-            <label style={ck}><input type="checkbox" name="is_home" checked={form.is_home} onChange={on} /> 홈 노출</label>
-            <label style={ck}><input type="checkbox" name="is_featured" checked={form.is_featured} onChange={on} /> 대표글</label>
-            <label style={ck}><input type="checkbox" name="is_pinned" checked={form.is_pinned} onChange={on} /> 추천(상단고정)</label>
-          </div>
-          <div className="field"><label>상태</label>
-            <select name="status" value={form.status} onChange={on} style={selStyle}>
-              <option value="published">공개(published)</option><option value="draft">임시저장(draft)</option>
-            </select>
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn--primary" disabled={busy} style={{ flex: 1, justifyContent: 'center' }}>{busy ? '저장 중…' : editingId ? '수정 저장' : '글 등록'}</button>
-            {editingId && <button type="button" className="btn btn--outline" onClick={reset}>취소</button>}
-          </div>
-        </form>
-
-        <div>
-          <h3 style={{ marginBottom: 14 }}>등록된 글 ({posts.length})</h3>
-          {posts.length === 0 && <p style={{ color: 'var(--muted)' }}>아직 글이 없습니다. 왼쪽에서 첫 글을 등록해 보세요.</p>}
-          <div style={{ display: 'grid', gap: 10 }}>
-            {posts.map((p) => (
-              <div key={p.id} className="card" style={{ padding: '14px 16px', display: 'flex', gap: 14 }}>
-                {p.thumbnail
-                  ? <img src={proxiedImageUrl(p.thumbnail)} alt="" style={{ width: 84, height: 64, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
-                  : <div style={{ width: 84, height: 64, borderRadius: 8, background: 'var(--soft)', flex: 'none' }} />}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                <div className="postcard__meta" style={{ marginBottom: 6 }}>
-                  {p.is_pinned && <span className="chip chip--pin">추천</span>}
-                  <span className="chip">{p.category}</span>
-                  <span>{p.published_at}</span>
-                  {p.status !== 'published' && <span style={{ color: '#c0392b' }}>· {p.status}</span>}
-                </div>
-                <strong style={{ display: 'block', marginBottom: 8 }}>{p.title}</strong>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn btn--outline" style={btnSm} onClick={() => edit(p)}>수정</button>
-                  <Link className="btn btn--outline" style={btnSm} href={`/futuresalon/${p.category}/${encodeURIComponent(p.slug)}`} target="_blank">보기</Link>
-                  {p.naver_url && <a className="btn btn--outline" style={btnSm} href={p.naver_url} target="_blank" rel="noreferrer">원문</a>}
-                  <button className="btn btn--outline" style={{ ...btnSm, color: '#c0392b' }} onClick={() => remove(p)}>삭제</button>
-                </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
-
-/* ========================= 양성길의 세계여행 관리 ========================= */
-
-const EMPTY_TRAVEL = {
-  naver_url: '', title: '', summary: '', thumbnail: '',
-  published_at: '', display_order: 100, is_featured: false, status: 'published',
-}
-
-function TravelAdmin() {
-  const [posts, setPosts] = useState([])
-  const [form, setForm] = useState(EMPTY_TRAVEL)
-  const [editingId, setEditingId] = useState(null)
-  const [msg, setMsg] = useState('')
-  const [busy, setBusy] = useState(false)
-  const [fetching, setFetching] = useState(false)
-
-  useEffect(() => { loadPosts() }, [])
-
-  async function loadPosts() {
-    try {
-      const rows = await getAllTravelPostsForAdmin()
-      setPosts(rows)
-    } catch (e) { setMsg('목록 로드 오류: ' + e.message) }
-  }
-
-  const on = (e) => {
-    const { name, value, type, checked } = e.target
-    setForm((f) => ({ ...f, [name]: type === 'checkbox' ? checked : value }))
-  }
-
-  async function fetchPreview() {
-    const url = form.naver_url.trim()
-    if (!url) { setMsg('먼저 네이버 블로그 글 주소를 입력해 주세요.'); return }
-    setFetching(true); setMsg('')
-    try {
-      const res = await fetch(`/api/link-preview?url=${encodeURIComponent(url)}`)
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || '가져오기 실패')
-      setForm((f) => ({
-        ...f,
-        title: data.title || f.title,
-        summary: data.summary || f.summary,
-        thumbnail: data.thumbnail || f.thumbnail,
-      }))
-      setMsg('✓ 제목·요약·썸네일을 불러왔습니다. 필요하면 아래에서 수정 후 등록하세요.')
+      setMsg('✓ 제목·요약·대표 이미지를 불러왔습니다. 필요하면 수정 후 등록하세요.')
     } catch (e) {
       setMsg('불러오기 오류: ' + e.message + ' — 아래 칸에 직접 입력해 주세요.')
     }
     setFetching(false)
   }
 
-  function edit(p) {
-    setEditingId(p.id)
-    setForm({ ...EMPTY_TRAVEL, ...p })
+  function edit(p, t) {
+    setType(t); setListTab(t); setEditingId(p.id)
+    setForm({ ...EMPTY_FORM, ...p, tags: Array.isArray(p.tags) ? p.tags.join(', ') : (p.tags || '') })
     setMsg(''); window.scrollTo({ top: 0, behavior: 'smooth' })
   }
-  function reset() { setEditingId(null); setForm(EMPTY_TRAVEL); setMsg('') }
+  // 저장 직후 성공 메시지가 지워지지 않도록 메시지는 따로 관리합니다.
+  function reset() { setEditingId(null); setForm(EMPTY_FORM) }
+  function cancel() { reset(); setMsg('') }
 
   async function save(e) {
     e.preventDefault()
-    if (!form.title.trim()) { setMsg('제목이 비어 있습니다. "가져오기"를 누르거나 직접 입력해 주세요.'); return }
+    const cfg = TYPES[type]
+    const title = (form.title || '').trim()
+    const url = (form.naver_url || '').trim()
+    if (!title) { setMsg('제목이 비어 있습니다. "가져오기"를 누르거나 직접 입력해 주세요.'); return }
+    if (type === 'travel' && !url) { setMsg('세계여행은 네이버 블로그 글 주소가 필요합니다.'); return }
+
+    const common = {
+      naver_url: url, title,
+      summary: (form.summary || '').trim(),
+      thumbnail: (form.thumbnail || '').trim(),
+      published_at: form.published_at || todayStr(),
+      updated_at: todayStr(),
+      display_order: Number(form.display_order) || 100,
+      is_featured: !!form.is_featured,
+      status: form.status,
+    }
+    const data = type === 'salon' ? {
+      ...common,
+      slug: (form.slug || slugify(title)).trim(),
+      category: form.category, subcategory: (form.subcategory || '').trim(),
+      // 링크로 등록한 글은 본문을 비워도 됩니다 — 이때는 요약을 본문으로 씁니다.
+      content: (form.content || '').trim() || common.summary,
+      tags: String(form.tags || '').split(',').map((t) => t.trim()).filter(Boolean),
+      corner: form.corner || null, forecastYear: form.forecastYear || null, archiveVerdict: form.archiveVerdict || null,
+      is_home: !!form.is_home, is_pinned: !!form.is_pinned,
+      author: '양성길',
+    } : common
+
     setBusy(true); setMsg('')
     try {
       const db = getDb()
       const { collection, addDoc, doc, updateDoc } = await import('firebase/firestore')
-      const data = {
-        naver_url: form.naver_url.trim(),
-        title: form.title.trim(),
-        summary: form.summary.trim(),
-        thumbnail: form.thumbnail.trim(),
-        published_at: form.published_at || todayStr(),
-        updated_at: todayStr(),
-        display_order: Number(form.display_order) || 100,
-        is_featured: !!form.is_featured,
-        status: form.status,
-      }
       if (editingId) {
-        await updateDoc(doc(db, TRAVEL_COLLECTION, editingId), data)
-        setMsg('✓ 수정되었습니다.')
+        await updateDoc(doc(db, cfg.collection, editingId), data)
+        setMsg(`✓ ${cfg.label} 글을 수정했습니다.`)
       } else {
-        await addDoc(collection(db, TRAVEL_COLLECTION), data)
-        setMsg('✓ 새 여행기가 등록되었습니다.')
+        await addDoc(collection(db, cfg.collection), type === 'salon' ? { ...data, views: 0 } : data)
+        setMsg(`✓ ${cfg.label}에 등록했습니다.`)
       }
-      reset(); await loadPosts()
+      reset()
+      await (type === 'salon' ? loadSalon() : loadTravel())
     } catch (e) { setMsg('저장 오류: ' + e.message) }
     setBusy(false)
   }
-  async function remove(p) {
-    if (!confirm(`"${p.title}" 여행기를 삭제할까요?`)) return
+
+  async function remove(p, t) {
+    if (!confirm(`"${p.title}" 글을 삭제할까요?`)) return
     try {
       const db = getDb()
       const { doc, deleteDoc } = await import('firebase/firestore')
-      await deleteDoc(doc(db, TRAVEL_COLLECTION, p.id)); await loadPosts()
+      await deleteDoc(doc(db, TYPES[t].collection, p.id))
+      if (editingId === p.id) reset()
+      await (t === 'salon' ? loadSalon() : loadTravel())
+      setMsg('✓ 삭제했습니다.')
     } catch (e) { setMsg('삭제 오류: ' + e.message) }
   }
+
+  const isSalon = type === 'salon'
+  const list = listTab === 'salon' ? salonPosts : travelPosts
 
   return (
     <>
       <p style={{ color: 'var(--muted)', marginBottom: 18, fontSize: '.95rem' }}>
-        네이버 블로그 글 주소를 넣고 <strong>가져오기</strong>를 누르면 제목·요약·썸네일을 자동으로 채워줍니다. 내용은 등록 전에 자유롭게 수정할 수 있어요.
+        네이버 블로그 글 주소를 넣고 <strong>가져오기</strong>를 누르면 제목·요약·대표 이미지를 자동으로 채워줍니다. 등록 위치를 고른 뒤 등록하세요.
       </p>
-      {msg && <p style={{ padding: '10px 14px', background: 'var(--blue-50)', borderRadius: 10, marginBottom: 16, color: 'var(--blue-700)' }}>{msg}</p>}
+      {msg && <p style={msgStyle}>{msg}</p>}
 
       <div className="grid grid--2" style={{ alignItems: 'start' }}>
         <form className="form" onSubmit={save}>
-          <h3 style={{ marginBottom: 14 }}>{editingId ? '여행기 수정' : '새 여행기 등록'}</h3>
+          <h3 style={{ marginBottom: 14 }}>{editingId ? `${TYPES[type].label} 글 수정` : '새 글 등록'}</h3>
 
           <div className="field">
-            <label>네이버 블로그 글 주소 *</label>
+            <label>등록 위치</label>
+            <div role="radiogroup" aria-label="등록 위치" style={{ display: 'flex', gap: 8 }}>
+              {Object.entries(TYPES).map(([k, c]) => (
+                <button key={k} type="button" role="radio" aria-checked={type === k} onClick={() => chooseType(k)}
+                  disabled={!!editingId && type !== k}
+                  className={type === k ? 'btn btn--primary' : 'btn btn--outline'}
+                  style={{ flex: 1, justifyContent: 'center', opacity: editingId && type !== k ? 0.4 : 1 }}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            {editingId && <p style={{ color: 'var(--muted)', fontSize: '.82rem', marginTop: 6 }}>수정 중에는 등록 위치를 바꿀 수 없습니다.</p>}
+          </div>
+
+          <div className="field">
+            <label>네이버 블로그 글 주소{isSalon ? '' : ' *'}</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input name="naver_url" value={form.naver_url} onChange={on} required
+              <input name="naver_url" value={form.naver_url} onChange={on} required={!isSalon}
                 placeholder="https://blog.naver.com/intel007/..." style={{ flex: 1 }} />
               <button type="button" className="btn btn--outline" onClick={fetchPreview} disabled={fetching} style={{ whiteSpace: 'nowrap' }}>
                 {fetching ? '불러오는 중…' : '가져오기'}
@@ -418,17 +290,55 @@ function TravelAdmin() {
             </div>
           </div>
 
-          <div className="field"><label>제목 *</label><input name="title" value={form.title} onChange={on} required /></div>
-          <div className="field"><label>요약</label><textarea name="summary" value={form.summary} onChange={on} style={{ minHeight: 80 }} /></div>
-          <ThumbnailField value={form.thumbnail} folder="travel-thumbnails" setMsg={setMsg}
+          <ThumbnailField value={form.thumbnail} folder={TYPES[type].folder} setMsg={setMsg}
             onChange={(url) => setForm((f) => ({ ...f, thumbnail: url }))} />
 
+          <div className="field"><label>제목 *</label><input name="title" value={form.title} onChange={on} required /></div>
+          <div className="field"><label>요약</label><textarea name="summary" value={form.summary} onChange={on} style={{ minHeight: 80 }} /></div>
+
+          {isSalon && (
+            <>
+              <div className="field"><label>카테고리 *</label>
+                <select name="category" value={form.category} onChange={on} style={selStyle}>
+                  {ALL_CATEGORIES.map((c) => <option key={c.slug} value={c.slug}>{c.groupKo} · {c.ko}</option>)}
+                </select>
+              </div>
+              <div className="field"><label>본문 (비우면 요약을 본문으로 사용)</label>
+                <textarea name="content" value={form.content} onChange={on} style={{ minHeight: 140 }} placeholder="문단은 빈 줄로 구분됩니다." />
+              </div>
+              <div className="field"><label>태그 (쉼표로 구분)</label><input name="tags" value={form.tags} onChange={on} placeholder="인공지능, 미래예측" /></div>
+              <details style={{ margin: '4px 0 14px' }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--muted)', fontSize: '.9rem' }}>추가 설정 (슬러그 · 서브카테고리 · 코너)</summary>
+                <div style={{ marginTop: 12 }}>
+                  <div className="field"><label>슬러그 (URL, 비우면 제목으로 자동)</label><input name="slug" value={form.slug} onChange={on} placeholder="예: 2030-ai-agent" /></div>
+                  <div className="field"><label>서브카테고리</label><input name="subcategory" value={form.subcategory} onChange={on} /></div>
+                  <div className="field"><label>코너</label>
+                    <select name="corner" value={form.corner || ''} onChange={on} style={selStyle}>
+                      <option value="">일반</option><option value="insight">Future Insight</option>
+                      <option value="forecast">Future Forecast</option><option value="archive">Future Archive</option>
+                    </select>
+                  </div>
+                  {form.corner === 'forecast' && <div className="field"><label>전망 연도 (2030/2040/2050)</label><input name="forecastYear" value={form.forecastYear || ''} onChange={on} /></div>}
+                  {form.corner === 'archive' && <div className="field"><label>아카이브 평가 (예: 일부 적중)</label><input name="archiveVerdict" value={form.archiveVerdict || ''} onChange={on} /></div>}
+                </div>
+              </details>
+            </>
+          )}
+
           <div className="grid grid--2" style={{ gap: 12 }}>
-            <div className="field"><label>작성일 (비우면 오늘)</label><input name="published_at" value={form.published_at} onChange={on} placeholder="2018-02-20" /></div>
+            <div className="field"><label>작성일 (비우면 오늘)</label><input name="published_at" value={form.published_at} onChange={on} placeholder="2025-11-02" /></div>
             <div className="field"><label>노출 순서</label><input name="display_order" type="number" value={form.display_order} onChange={on} /></div>
           </div>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', margin: '4px 0 16px' }}>
-            <label style={ck}><input type="checkbox" name="is_featured" checked={form.is_featured} onChange={on} /> 대표 여행기</label>
+            {isSalon ? (
+              <>
+                <label style={ck}><input type="checkbox" name="is_home" checked={!!form.is_home} onChange={on} /> 홈 노출</label>
+                <label style={ck}><input type="checkbox" name="is_featured" checked={!!form.is_featured} onChange={on} /> 대표글</label>
+                <label style={ck}><input type="checkbox" name="is_pinned" checked={!!form.is_pinned} onChange={on} /> 추천(상단고정)</label>
+              </>
+            ) : (
+              <label style={ck}><input type="checkbox" name="is_featured" checked={!!form.is_featured} onChange={on} /> 대표 여행기</label>
+            )}
           </div>
           <div className="field"><label>상태</label>
             <select name="status" value={form.status} onChange={on} style={selStyle}>
@@ -436,31 +346,39 @@ function TravelAdmin() {
             </select>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button className="btn btn--primary" disabled={busy} style={{ flex: 1, justifyContent: 'center' }}>{busy ? '저장 중…' : editingId ? '수정 저장' : '여행기 등록'}</button>
-            {editingId && <button type="button" className="btn btn--outline" onClick={reset}>취소</button>}
+            <button className="btn btn--primary" disabled={busy} style={{ flex: 1, justifyContent: 'center' }}>
+              {busy ? '저장 중…' : editingId ? '수정 저장' : `${TYPES[type].label}에 등록`}
+            </button>
+            {editingId && <button type="button" className="btn btn--outline" onClick={cancel}>취소</button>}
           </div>
         </form>
 
         <div>
-          <h3 style={{ marginBottom: 14 }}>등록된 여행기 ({posts.length})</h3>
-          {posts.length === 0 && <p style={{ color: 'var(--muted)' }}>아직 등록된 여행기가 없습니다.</p>}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, borderBottom: '1px solid var(--line)' }}>
+            <button type="button" onClick={() => setListTab('salon')} style={tabBtn(listTab === 'salon')}>미래살롱 ({salonPosts.length})</button>
+            <button type="button" onClick={() => setListTab('travel')} style={tabBtn(listTab === 'travel')}>세계여행 ({travelPosts.length})</button>
+          </div>
+          {list.length === 0 && <p style={{ color: 'var(--muted)' }}>아직 등록된 글이 없습니다.</p>}
           <div style={{ display: 'grid', gap: 10 }}>
-            {posts.map((p) => (
-              <div key={p.id} className="card" style={{ padding: '14px 16px', display: 'flex', gap: 14 }}>
+            {list.map((p) => (
+              <div key={p.id} className="card" style={{ padding: '14px 16px', display: 'flex', gap: 14, outline: editingId === p.id ? '2px solid var(--blue-600)' : 'none' }}>
                 {p.thumbnail
                   ? <img src={proxiedImageUrl(p.thumbnail)} alt="" style={{ width: 84, height: 64, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
                   : <div style={{ width: 84, height: 64, borderRadius: 8, background: 'var(--soft)', flex: 'none' }} />}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="postcard__meta" style={{ marginBottom: 4 }}>
-                    {p.is_featured && <span className="chip chip--pin">대표</span>}
+                    {listTab === 'salon' && p.is_pinned && <span className="chip chip--pin">추천</span>}
+                    {listTab === 'travel' && p.is_featured && <span className="chip chip--pin">대표</span>}
+                    {listTab === 'salon' && <span className="chip">{p.category}</span>}
                     <span>{p.published_at}</span>
                     {p.status !== 'published' && <span style={{ color: '#c0392b' }}>· {p.status}</span>}
                   </div>
                   <strong style={{ display: 'block', marginBottom: 8 }}>{p.title}</strong>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button className="btn btn--outline" style={btnSm} onClick={() => edit(p)}>수정</button>
-                    <a className="btn btn--outline" style={btnSm} href={p.naver_url} target="_blank" rel="noreferrer">원문</a>
-                    <button className="btn btn--outline" style={{ ...btnSm, color: '#c0392b' }} onClick={() => remove(p)}>삭제</button>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button className="btn btn--outline" style={btnSm} onClick={() => edit(p, listTab)}>수정</button>
+                    {listTab === 'salon' && <Link className="btn btn--outline" style={btnSm} href={`/futuresalon/${p.category}/${encodeURIComponent(p.slug)}`} target="_blank">보기</Link>}
+                    {p.naver_url && <a className="btn btn--outline" style={btnSm} href={p.naver_url} target="_blank" rel="noreferrer">원문</a>}
+                    <button className="btn btn--outline" style={{ ...btnSm, color: '#c0392b' }} onClick={() => remove(p, listTab)}>삭제</button>
                   </div>
                 </div>
               </div>
